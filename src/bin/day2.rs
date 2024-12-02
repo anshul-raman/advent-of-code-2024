@@ -6,20 +6,16 @@ fn main() {
 
 mod part1 {
 
-    pub fn process(input: &str) -> i64 {
+    pub fn process(input: &str) -> usize {
         input
             .trim()
             .lines()
             .map(crate::shared::parse_line)
-            .map(is_safe)
-            .map(|f| match f {
-                true => 1,
-                false => 0,
-            })
-            .sum()
+            .filter(|r| is_safe(r))
+            .count()
     }
 
-    fn is_safe(nums: Vec<i64>) -> bool {
+    fn is_safe(nums: &[i64]) -> bool {
         assert!(nums.len() > 1);
 
         if !(1..=3).contains(&(nums[1] - nums[0]).abs()) {
