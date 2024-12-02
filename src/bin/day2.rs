@@ -6,36 +6,15 @@ fn main() {
 
 mod part1 {
 
+    use crate::shared::*;
+
     pub fn process(input: &str) -> usize {
         input
             .trim()
             .lines()
-            .map(crate::shared::parse_line)
+            .map(parse_line)
             .filter(|r| is_safe(r))
             .count()
-    }
-
-    fn is_safe(nums: &[i64]) -> bool {
-        assert!(nums.len() > 1);
-
-        if !(1..=3).contains(&(nums[1] - nums[0]).abs()) {
-            return false;
-        }
-
-        let is_inc = nums[1] > nums[0];
-
-        for i in 2..nums.len() {
-            let next_is_inc = nums[i] > nums[i - 1];
-            if next_is_inc != is_inc {
-                return false;
-            }
-
-            if !(1..=3).contains(&(nums[i] - nums[i - 1]).abs()) {
-                return false;
-            }
-        }
-
-        true
     }
 
     #[cfg(test)]
@@ -56,19 +35,16 @@ mod part1 {
 }
 
 mod part2 {
-    pub fn process(input: &str) -> i64 {
+
+    use crate::shared::*;
+
+    pub fn process(input: &str) -> usize {
         input
             .trim()
             .lines()
-            .map(crate::shared::parse_line)
-            .collect::<Vec<Vec<i64>>>()
-            .iter()
-            .map(|r| try_is_safe(r))
-            .map(|f| match f {
-                true => 1,
-                false => 0,
-            })
-            .sum()
+            .map(parse_line)
+            .filter(|r| try_is_safe(r))
+            .count()
     }
 
     fn try_is_safe(nums: &[i64]) -> bool {
@@ -94,7 +70,25 @@ mod part2 {
         false
     }
 
-    fn is_safe(nums: &[i64]) -> bool {
+    #[cfg(test)]
+    mod test {
+        use crate::part2;
+
+        #[test]
+        fn test_part2() {
+            let input = "7 6 4 2 1
+1 2 7 8 9
+9 7 6 2 1
+1 3 2 4 5
+8 6 4 4 1
+1 3 6 7 9";
+            assert_eq!(4, part2::process(input));
+        }
+    }
+}
+
+mod shared {
+    pub fn is_safe(nums: &[i64]) -> bool {
         assert!(nums.len() > 1);
 
         if !(1..=3).contains(&(nums[1] - nums[0]).abs()) {
@@ -116,26 +110,6 @@ mod part2 {
 
         true
     }
-
-    #[cfg(test)]
-    mod test {
-        use crate::part2;
-
-        #[test]
-        fn test_part2() {
-            let input = "7 6 4 2 1
-1 2 7 8 9
-9 7 6 2 1
-1 3 2 4 5
-8 6 4 4 1
-1 3 6 7 9";
-            assert_eq!(4, part2::process(input));
-        }
-    }
-}
-
-mod shared {
-
     pub fn parse_line(line: &str) -> Vec<i64> {
         line.split_whitespace()
             .map(str::parse::<i64>)
