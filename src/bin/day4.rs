@@ -23,8 +23,8 @@ mod part1 {
 
         // Finding Vertical
         for j in 0..=n {
-            for i in 0..=m {
-                temp_slice.push(matrix[i][j])
+            for row in matrix.iter().take(m + 1) {
+                temp_slice.push(row[j])
             }
 
             count += find(&temp_slice);
@@ -138,19 +138,17 @@ mod part2 {
         let mut count = 0;
         let mut slice = Vec::with_capacity(9);
 
-        for i in 0..matrix.len() {
-            for j in 0..matrix[0].len() {
+        for i in 0..matrix.len().saturating_sub(2) {
+            for j in 0..matrix[0].len().saturating_sub(2) {
                 slice.clear();
-                if i + 2 < matrix.len() && j + 2 < matrix[i].len() {
-                    for k in i..(i + 3) {
-                        for l in j..(j + 3) {
-                            slice.push(matrix[k][l]);
-                        }
+                for row in matrix.iter().skip(i).take(3) {
+                    for ch in row.iter().skip(j).take(3) {
+                        slice.push(*ch);
                     }
+                }
 
-                    if is_x_mas(&slice) {
-                        count += 1;
-                    }
+                if is_x_mas(&slice) {
+                    count += 1;
                 }
             }
         }
