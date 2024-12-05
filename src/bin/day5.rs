@@ -78,16 +78,18 @@ mod part1 {
 
 mod part2 {
 
+    use std::cmp::Ordering;
+
     use crate::shared::*;
 
     pub fn process(input: &str) -> i64 {
-        let input_data = parse(input);
+        let mut input_data = parse(input);
         let after_rules = make_after_rules(&input_data.pairs);
         let before_rules = make_before_rules(&input_data.pairs);
 
         input_data
             .pages
-            .iter()
+            .iter_mut()
             .filter(|p| {
                 for x in 0..p.len() {
                     for y in (x + 1)..p.len() {
@@ -99,23 +101,12 @@ mod part2 {
                 false
             })
             .map(|p| {
-                let mut nums = p.clone();
-                let mut changed = true;
-                while changed {
-                    changed = false;
-                    for i in 0..(nums.len() - 1) {
-                        if !is_correct(nums[i], nums[i + 1], &after_rules, &before_rules) {
-                            nums.swap(i, i + 1);
-                            changed = true;
-                        }
+                p.sort_by(|a, b| {
+                    if !is_correct(*a, *b, &after_rules, &before_rules) {
+                        return Ordering::Less;
                     }
-                }
-
-                nums
-            })
-            .map(|p| {
-                // middle value only possible for odd len ?
-                assert!(p.len() % 2 != 0);
+                    Ordering::Equal
+                });
                 p[p.len() / 2]
             })
             .sum()
