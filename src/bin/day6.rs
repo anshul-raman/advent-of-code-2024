@@ -274,37 +274,15 @@ mod shared {
         }
 
         pub fn move_in_dir(&self, dir: &Direction) -> Option<Self> {
+            let mut new_pos = self.clone();
             match dir {
-                Direction::North => {
-                    if self.r_idx > 0 {
-                        let mut new_pos = self.clone();
-                        new_pos.r_idx -= 1;
-                        return Some(new_pos);
-                    }
-                }
-                Direction::East => {
-                    if self.c_idx < self.max_c_idx {
-                        let mut new_pos = self.clone();
-                        new_pos.c_idx += 1;
-                        return Some(new_pos);
-                    }
-                }
-                Direction::West => {
-                    if self.c_idx > 0 {
-                        let mut new_pos = self.clone();
-                        new_pos.c_idx -= 1;
-                        return Some(new_pos);
-                    }
-                }
-                Direction::South => {
-                    if self.r_idx < self.max_r_idx {
-                        let mut new_pos = self.clone();
-                        new_pos.r_idx += 1;
-                        return Some(new_pos);
-                    }
-                }
+                Direction::North if self.r_idx > 0 => new_pos.r_idx -= 1,
+                Direction::East if self.c_idx < self.max_c_idx => new_pos.c_idx += 1,
+                Direction::South if self.r_idx < self.max_r_idx => new_pos.r_idx += 1,
+                Direction::West if self.c_idx > 0 => new_pos.c_idx -= 1,
+                _ => return None,
             }
-            None
+            Some(new_pos)
         }
     }
 
@@ -313,62 +291,30 @@ mod shared {
     }
 
     pub fn find_starting_pos(input: &[Vec<char>]) -> (Position, Direction) {
-        let max_x = input.len() - 1;
-        let max_y = input[0].len() - 1;
+        let max_r = input.len() - 1;
+        let max_c = input[0].len() - 1;
 
         for (x, row) in input.iter().enumerate() {
-            for (y, c) in row.iter().enumerate() {
-                match &c {
-                    '^' => {
-                        return (
-                            Position {
-                                r_idx: x,
-                                c_idx: y,
-                                max_r_idx: max_x,
-                                max_c_idx: max_y,
-                            },
-                            Direction::North,
-                        );
-                    }
-                    '>' => {
-                        return (
-                            Position {
-                                r_idx: x,
-                                c_idx: y,
-                                max_r_idx: max_x,
-                                max_c_idx: max_y,
-                            },
-                            Direction::East,
-                        );
-                    }
-                    'v' => {
-                        return (
-                            Position {
-                                r_idx: x,
-                                c_idx: y,
-                                max_r_idx: max_x,
-                                max_c_idx: max_y,
-                            },
-                            Direction::South,
-                        );
-                    }
-                    '<' => {
-                        return (
-                            Position {
-                                r_idx: x,
-                                c_idx: y,
-                                max_r_idx: max_x,
-                                max_c_idx: max_y,
-                            },
-                            Direction::West,
-                        );
-                    }
+            for (y, &c) in row.iter().enumerate() {
+                let dir = match c {
+                    '^' => Direction::North,
+                    '>' => Direction::East,
+                    'v' => Direction::South,
+                    '<' => Direction::West,
                     _ => continue,
-                }
+                };
+                return (
+                    Position {
+                        r_idx: x,
+                        c_idx: y,
+                        max_r_idx: max_r,
+                        max_c_idx: max_c,
+                    },
+                    dir,
+                );
             }
         }
-
-        panic!("Invalid input. Starting position not found")
+        panic!("Invalid input. Starting position not found");
     }
 }
 
