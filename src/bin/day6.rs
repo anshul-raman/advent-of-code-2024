@@ -46,196 +46,111 @@ mod part1 {
 
 mod part2 {
     use crate::shared::*;
-    use std::{
-        char,
-        cmp::{max, min},
-        collections::HashSet,
-    };
+    use std::{char, collections::HashSet};
 
     pub fn process(input: &str) -> usize {
         let matrix = parse(input);
         let (pos, dir) = find_starting_pos(&matrix);
-        let mut hor_obs = hor_obs(&matrix);
-        let mut ver_obs = ver_obs(&matrix);
+        let (mut hor_obs, mut ver_obs) = build_obstacle_maps(&matrix);
+        let mut visited = initial_path(&matrix, pos, dir);
+        visited.remove(&(pos.r_idx, pos.c_idx));
 
-        let mut visited_locations = HashSet::new();
-        let mut cur_dir = dir;
-        let mut cur_pos = pos.clone();
-        while cur_pos.is_valid() {
-            if let Some(next_pos) = cur_pos.move_in_dir(&cur_dir) {
-                if matrix[next_pos.r_idx][next_pos.c_idx] == '#' {
-                    cur_dir.turn_right();
-                    continue;
-                }
+        visited
+            .iter()
+            .filter(|&&(x, y)| {
+                hor_obs[x].push(y);
+                ver_obs[y].push(x);
+                let res = is_loop(pos, dir, &hor_obs, &ver_obs);
+                hor_obs[x].pop();
+                ver_obs[y].pop();
+                res
+            })
+            .count()
+    }
 
-                visited_locations.insert((next_pos.r_idx, next_pos.c_idx));
-                cur_pos = next_pos;
-            } else {
-                break;
-            }
-        }
+    fn initial_path(
+        matrix: &[Vec<char>],
+        start_pos: Position,
+        start_dir: Direction,
+    ) -> HashSet<(usize, usize)> {
+        let mut visited = HashSet::new();
+        let mut pos = start_pos;
+        let mut dir = start_dir;
 
-        let mut ans = 0;
-        for &(x, y) in visited_locations.iter() {
-            if x == pos.r_idx && y == pos.c_idx {
+        while let Some(next_pos) = pos.move_in_dir(&dir) {
+            if matrix[next_pos.r_idx][next_pos.c_idx] == '#' {
+                dir.turn_right();
                 continue;
             }
-
-            hor_obs[x].push(y);
-            ver_obs[y].push(x);
-            if is_loop(&pos, &dir, &hor_obs, &ver_obs) {
-                ans += 1;
-            }
-            hor_obs[x].pop();
-            ver_obs[y].pop();
+            visited.insert((next_pos.r_idx, next_pos.c_idx));
+            pos = next_pos;
         }
-        ans
+        visited
     }
 
-    fn hor_obs(matrix: &[Vec<char>]) -> Vec<Vec<usize>> {
-        let mut obs = vec![Vec::new(); matrix.len()];
-        for (idx, r) in matrix.iter().enumerate() {
-            for (cidx, el) in r.iter().enumerate() {
-                if *el == '#' {
-                    obs[idx].push(cidx);
+    fn build_obstacle_maps(matrix: &[Vec<char>]) -> (Vec<Vec<usize>>, Vec<Vec<usize>>) {
+        let mut hor = vec![Vec::new(); matrix.len()];
+        let mut ver = vec![Vec::new(); matrix[0].len()];
+
+        for (i, row) in matrix.iter().enumerate() {
+            for (j, &ch) in row.iter().enumerate() {
+                if ch == '#' {
+                    hor[i].push(j);
+                    ver[j].push(i);
                 }
             }
         }
-
-        obs
-    }
-
-    fn ver_obs(matrix: &[Vec<char>]) -> Vec<Vec<usize>> {
-        let mut obs = vec![Vec::new(); matrix[0].len()];
-        for j in 0..matrix[0].len() {
-            for i in 0..matrix.len() {
-                if matrix[i][j] == '#' {
-                    obs[j].push(i);
-                }
-            }
-        }
-
-        obs
+        (hor, ver)
     }
 
     fn is_loop(
-        pos: &Position,
-        dir: &Direction,
+        pos: Position,
+        dir: Direction,
         hor_obs: &[Vec<usize>],
         ver_obs: &[Vec<usize>],
     ) -> bool {
-        let mut locations = HashSet::new();
-        let mut pos = pos.clone();
-        let mut dir = *dir;
+        let mut visited = HashSet::new();
+        let mut cur_pos = pos;
+        let mut cur_dir = dir;
 
-        while pos.is_valid() {
-            let mut next_loc = pos.clone();
-            let mut next_obs: Option<usize> = None;
-            match dir {
-                Direction::North => {
-                    for &obs in &ver_obs[pos.c_idx] {
-                        if obs > pos.r_idx {
-                            continue;
-                        }
+        loop {
+            let next_obs = match cur_dir {
+                Direction::North => ver_obs[cur_pos.c_idx]
+                    .iter()
+                    .filter(|&&x| x <= cur_pos.r_idx)
+                    .max(),
+                Direction::South => ver_obs[cur_pos.c_idx]
+                    .iter()
+                    .filter(|&&x| x >= cur_pos.r_idx)
+                    .min(),
+                Direction::East => hor_obs[cur_pos.r_idx]
+                    .iter()
+                    .filter(|&&x| x >= cur_pos.c_idx)
+                    .min(),
+                Direction::West => hor_obs[cur_pos.r_idx]
+                    .iter()
+                    .filter(|&&x| x <= cur_pos.c_idx)
+                    .max(),
+            };
 
-                        if let Some(a) = next_obs {
-                            next_obs = Some(max(a, obs));
-                        } else {
-                            next_obs = Some(obs);
-                        }
-                    }
-                    match next_obs {
-                        None => return false,
-                        Some(a) => {
-                            next_loc.r_idx = a + 1;
-                            dir.turn_right();
-                            if locations.contains(&(next_loc.r_idx, next_loc.c_idx, dir)) {
-                                return true;
-                            }
-                            locations.insert((next_loc.r_idx, next_loc.c_idx, dir));
-                        }
-                    }
-                }
-                Direction::East => {
-                    for &obs in &hor_obs[pos.r_idx] {
-                        if obs < pos.c_idx {
-                            continue;
-                        }
+            let next_obs = match next_obs {
+                Some(&x) => x,
+                None => return false,
+            };
 
-                        if let Some(a) = next_obs {
-                            next_obs = Some(min(a, obs));
-                        } else {
-                            next_obs = Some(obs);
-                        }
-                    }
-                    match next_obs {
-                        None => return false,
-                        Some(a) => {
-                            next_loc.c_idx = a - 1;
-                            dir.turn_right();
-                            if locations.contains(&(next_loc.r_idx, next_loc.c_idx, dir)) {
-                                return true;
-                            }
-
-                            locations.insert((next_loc.r_idx, next_loc.c_idx, dir));
-                        }
-                    }
-                }
-                Direction::South => {
-                    for &obs in &ver_obs[pos.c_idx] {
-                        if obs < pos.r_idx {
-                            continue;
-                        }
-
-                        if let Some(a) = next_obs {
-                            next_obs = Some(min(a, obs));
-                        } else {
-                            next_obs = Some(obs);
-                        }
-                    }
-                    match next_obs {
-                        None => return false,
-                        Some(a) => {
-                            next_loc.r_idx = a - 1;
-                            dir.turn_right();
-                            if locations.contains(&(next_loc.r_idx, next_loc.c_idx, dir)) {
-                                return true;
-                            }
-                            locations.insert((next_loc.r_idx, next_loc.c_idx, dir));
-                        }
-                    }
-                }
-                Direction::West => {
-                    for &obs in &hor_obs[pos.r_idx] {
-                        if obs > pos.c_idx {
-                            continue;
-                        }
-
-                        if let Some(a) = next_obs {
-                            next_obs = Some(max(a, obs));
-                        } else {
-                            next_obs = Some(obs);
-                        }
-                    }
-                    match next_obs {
-                        None => return false,
-                        Some(a) => {
-                            next_loc.c_idx = a + 1;
-                            dir.turn_right();
-                            if locations.contains(&(next_loc.r_idx, next_loc.c_idx, dir)) {
-                                return true;
-                            }
-
-                            locations.insert((next_loc.r_idx, next_loc.c_idx, dir));
-                        }
-                    }
-                }
+            match cur_dir {
+                Direction::North => cur_pos.r_idx = next_obs + 1,
+                Direction::South => cur_pos.r_idx = next_obs - 1,
+                Direction::East => cur_pos.c_idx = next_obs - 1,
+                Direction::West => cur_pos.c_idx = next_obs + 1,
             }
 
-            pos = next_loc;
-        }
+            cur_dir.turn_right();
 
-        false
+            if !visited.insert((cur_pos.r_idx, cur_pos.c_idx, cur_dir)) {
+                return true;
+            }
+        }
     }
 }
 
@@ -260,7 +175,7 @@ mod shared {
         }
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Copy, Clone, Debug)]
     pub struct Position {
         pub r_idx: usize,
         pub c_idx: usize,
@@ -274,7 +189,7 @@ mod shared {
         }
 
         pub fn move_in_dir(&self, dir: &Direction) -> Option<Self> {
-            let mut new_pos = self.clone();
+            let mut new_pos = *self;
             match dir {
                 Direction::North if self.r_idx > 0 => new_pos.r_idx -= 1,
                 Direction::East if self.c_idx < self.max_c_idx => new_pos.c_idx += 1,
