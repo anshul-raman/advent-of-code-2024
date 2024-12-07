@@ -80,47 +80,25 @@ mod part2 {
             .sum()
     }
 
-    fn generate_all_ops(n: usize) -> Vec<Vec<i64>> {
-        let total_sequences = 3_i64.pow(n as u32);
-        let mut result = Vec::with_capacity(total_sequences as usize);
-
-        for i in 0..total_sequences {
-            let mut current = i;
-            let mut sequence = vec![0; n];
-
-            for j in (0..n).rev() {
-                sequence[j] = current % 3;
-                current /= 3;
-            }
-
-            result.push(sequence);
-        }
-
-        result
-    }
-
     fn is_valid(a: i64, b: &[i64]) -> bool {
-        let n = b.len() - 1;
-        for ops in generate_all_ops(n) {
-            let mut k = b[0];
-            for (idx, &el) in b.iter().skip(1).enumerate() {
-                match ops[idx] {
-                    0 => k += el,
-                    1 => k *= el,
-                    2 => k = format!("{}{}", k, el).parse::<i64>().unwrap(),
-                    _ => unreachable!(),
-                }
-                if k > a {
-                    break;
-                }
+        match b {
+            [n] => a == *n,
+            [n1, n2] => {
+                a == (*n1 + *n2)
+                    || a == (*n1 * *n2)
+                    || a == format!("{}{}", *n1, *n2).parse::<i64>().unwrap()
             }
-
-            if k == a {
-                return true;
+            [n1, n2, rest @ ..] => {
+                let mut v1 = vec![*n1 + *n2];
+                let mut v2 = vec![*n1 * *n2];
+                let mut v3 = vec![format!("{}{}", *n1, *n2).parse::<i64>().unwrap()];
+                v1.extend(rest);
+                v2.extend(rest);
+                v3.extend(rest);
+                is_valid(a, &v1) || is_valid(a, &v2) || is_valid(a, &v3)
             }
+            _ => false,
         }
-
-        false
     }
 }
 
