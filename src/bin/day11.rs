@@ -39,23 +39,25 @@ fn blink(a: usize, count: usize, cache: &mut HashMap<(usize, usize), usize>) -> 
     result
 }
 
-fn split_digit(a: usize) -> Option<(usize, usize)> {
-    let digits: Vec<_> = a
-        .to_string()
-        .chars()
-        .filter_map(|c| c.to_digit(10))
-        .map(|d| d as usize)
-        .collect();
-
-    if digits.len() % 2 != 0 {
+fn split_digit(mut n: usize) -> Option<(usize, usize)> {
+    // Count digits
+    let mut len = 0;
+    let mut temp = n;
+    while temp > 0 {
+        len += 1;
+        temp /= 10;
+    }
+    
+    if len % 2 != 0 {
         return None;
     }
-
-    let mid = digits.len() / 2;
-    Some((
-        digits[..mid].iter().fold(0, |acc, &d| acc * 10 + d),
-        digits[mid..].iter().fold(0, |acc, &d| acc * 10 + d),
-    ))
+    
+    // Calculate divisor for splitting (10^(len/2))
+    let divisor = 10_usize.pow((len / 2) as u32);
+    let right = n % divisor;
+    let left = n / divisor;
+    
+    Some((left, right))
 }
 
 #[cfg(test)]
