@@ -2,15 +2,16 @@ use std::collections::HashMap;
 
 fn main() {
     let input = include_str!("../../puzzle_inputs/day11.txt");
-    println!("Part1: {}", process(input, 25));
-    println!("Part2: {}", process(input, 75));
+    let mut cache = HashMap::new();
+    println!("Part1: {}", process(input, 25, &mut cache));
+    println!("Part2: {}", process(input, 75, &mut cache));
 }
 
-fn process(input: &str, count: usize) -> usize {
+fn process(input: &str, count: usize, cache: &mut HashMap<(usize, usize), usize>) -> usize {
     input
         .split_whitespace()
         .filter_map(|n| n.parse().ok())
-        .map(|n| blink(n, count, &mut HashMap::new()))
+        .map(|n| blink(n, count, cache))
         .sum()
 }
 
@@ -27,8 +28,10 @@ fn blink(a: usize, count: usize, cache: &mut HashMap<(usize, usize), usize>) -> 
         blink(1, count - 1, cache)
     } else {
         match split_digit(a) {
-            Some((left, right)) => blink(left, count - 1, cache) + blink(right, count - 1, cache),
-            None => blink(a * 2024, count - 1, cache),
+            Some((left, right)) => {
+                blink(left, count - 1, cache) + blink(right, count - 1, cache)
+            }
+            None => blink(a * 2024, count - 1, cache)
         }
     };
 
@@ -62,6 +65,7 @@ mod tests {
     #[test]
     fn test_part1() {
         let input = "125 17";
-        assert_eq!(55312, process(input, 25));
+        let mut cache = HashMap::new();
+        assert_eq!(55312, process(input, 25, &mut cache));
     }
 }
